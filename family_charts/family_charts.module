@@ -23,74 +23,59 @@ function family_charts_help($path, $arg){
 }
  
 /**
- * Implements hook_node_info().
+ * Implements hook_menu().
  *
- * Defines the custom content type for family charts.
+ * Defines a path for a new page in Drupal
  */
- function family_charts_node_info() {
-	 return array(
-		'family_charts_node_type' => array(
-			'name' => t('Family Charts Node Type'),
-			'base' => 'family_charts',
-			'description' => t('This is a node type that creates a family chart.'),
-			'title_label' => t('Family Charts Node'),
-			'locked' => TRUE,
-		),
-	);	
- }
- 
- /**
- * Implements hook_node_type_insert().
- *
- * Adds fields to the custom content type.
- */
- function family_charts_node_type_insert($content_type) {
-	 if($content_type->type == 'family_charts_node_type') {
-		 // Add the body field
-		 $body_instance = node_add_body_field($content_type, t('Family Charts body'));
-		 
-		 // Save changes to the body field instance.
-		 field_update_instance($body_instance);
-	 }
- }
- 
- /**
- * Implements hook_form()
- *
- * Provides the form for adding a new instance of the content type.
- */
- function family_charts_form($node, $form_state) {
-	 return node_content_form($node, $form_state);
- }
- 
-/**
- * Implements hook_theme().
- */
-function family_charts_theme($existing, $type, $theme, $path) {
-	return array(
-		'family_charts' => array(
-		'render element' => 'content',
-		'base hook' => 'node',
-		'template' => 'familycharts',
-		'path' => drupal_get_path('module', 'family_charts') . '/templates',
-		),
+function family_charts_menu() 
+{
+	$items['family_charts/direct'] = array(
+		'title' => 'Direct Ancestors',
+		'page callback' => 'family_charts_direct',
+		'access arguments' => array('access content'),
 	);
+ 
+	return $items;
 }
 
 /**
- * Custom content function. 
- * 
- * Retrieves the entries to be set in the family tree chart
- * 
- * @return 
- *   A set of ancestors
- */
-function family_charts_contents(){
-	//Use Database API to retrieve current posts.
-	$query = db_select('node', 'n')
-		->fields('n', array('nid', 'title'))
-		->condition('type', 'person') // person
-		->orderBy('created', 'DESC') //Most recent first.
-		->execute(); 
+* Custom content function
+* 
+* Retrieves direct ancestor data
+*
+* @return
+* 	A result set of direct ancestors
+*/
+function family_charts_contents() {
+	$query= db_select('node', 'n')
+			->fields('n', array('nid', 'title'))
+			->condition('type', 'person') // person
+			->orderBy('created', 'DESC') //Most recent first.
+			->execute(); 
+			
 	return $query; 
+}
+ 
+ /**
+* Custom callback function.
+*/
+function family_charts_direct() {
+	// Custom function to retrieve data
+	$results = family_charts_contents();
+		
+	// Array to contain items to list on page
+	$items = array();
+	
+	foreach ($results as $result) {
+        $items[] = array(
+			'data' => t($result->title),
+        );
+    }
+	
+	$output = array(
+		'#items' => $items,
+		'#theme' => 'item_list',
+	);
+ 
+	return $output;
 }
